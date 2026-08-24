@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Sana ait küçük bir şey var.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,300;0,400;1,300;1,400&family=Inter:wght@300;400&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --night: #08080f;
+  --deep: #0d0d1a;
+  --amber: #c9956a;
+  --amber-soft: rgba(201,149,106,0.15);
+  --cream: #ede8df;
+  --cream-dim: rgba(237,232,223,0.55);
+  --cream-faint: rgba(237,232,223,0.25);
+  --glow: rgba(201,149,106,0.08);
+  --white: #f5f2ee;
+}
+
+html, body {
+  width: 100%; height: 100%;
+  background: var(--night);
+  color: var(--cream);
+  font-family: 'Inter', sans-serif;
+  font-weight: 300;
+  overflow: hidden;
+}
+
+/* ── PARTICLES ── */
+#canvas {
+  position: fixed; inset: 0;
+  pointer-events: none; z-index: 0;
+}
+
+/* ── SCREENS ── */
+.screen {
+  position: fixed; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 40px 28px;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.9s cubic-bezier(0.4,0,0.2,1);
+  pointer-events: none;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.screen.active {
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* ambient light blob */
+.screen::before {
+  content: '';
+  position: fixed;
+  width: 500px; height: 500px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(201,149,106,0.07) 0%, transparent 70%);
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  animation: breathe 6s ease-in-out infinite;
+}
+@keyframes breathe {
+  0%,100% { transform: translate(-50%,-50%) scale(1); opacity:0.6; }
+  50% { transform: translate(-50%,-50%) scale(1.15); opacity:1; }
+}
+
+/* ── TYPOGRAPHY ── */
+.display {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 300;
+  font-size: clamp(1.8rem, 6vw, 2.8rem);
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: var(--white);
+}
+.display.italic { font-style: italic; }
+
+.body-text {
+  font-size: clamp(0.95rem, 3vw, 1.1rem);
+  line-height: 1.85;
+  color: var(--cream-dim);
+  max-width: 440px;
+}
+
+.label {
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--amber);
+  opacity: 0.7;
+}
+
+/* ── SCREEN 1 — PASSWORD ── */
+.lock-icon {
+  width: 44px; height: 44px;
+  border: 1.5px solid rgba(201,149,106,0.4);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 32px;
+  font-size: 16px;
+  color: var(--amber);
+  animation: pulse 3s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(201,149,106,0.2); }
+  50% { box-shadow: 0 0 0 12px rgba(201,149,106,0); }
+}
+
+.pw-title {
+  font-family: 'Playfair Display', serif;
+  font-weight: 300; font-style: italic;
+  font-size: clamp(1.4rem, 5vw, 2rem);
+  color: var(--white);
+  text-align: center;
+  margin-bottom: 10px;
+}
+.pw-sub {
+  font-size: 0.85rem;
+  color: var(--cream-faint);
+  text-align: center;
+  line-height: 1.6;
+  max-width: 300px;
+  margin: 0 auto 36px;
+}
+
+.input-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto 8px;
+}
+input[type="password"], input[type="text"] {
+  width: 100%;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(201,149,106,0.2);
+  border-radius: 2px;
+  padding: 14px 44px 14px 18px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 300;
+  letter-spacing: 0.15em;
+  color: var(--white);
+  outline: none;
+  transition: border-color 0.3s, background 0.3s;
+  -webkit-appearance: none;
+}
+input:focus {
+  border-color: rgba(201,149,106,0.5);
+  background: rgba(255,255,255,0.07);
+}
+.eye-btn {
+  position: absolute; right: 14px; top: 50%;
+  transform: translateY(-50%);
+  background: none; border: none;
+  color: rgba(201,149,106,0.5); cursor: pointer;
+  font-size: 14px; padding: 4px;
+  transition: color 0.2s;
+}
+.eye-btn:hover { color: var(--amber); }
+
+.pw-error {
+  text-align: center;
+  font-size: 0.78rem;
+  color: rgba(201,149,106,0.7);
+  font-style: italic;
+  height: 20px;
+  transition: opacity 0.3s;
+  margin-bottom: 20px;
+}
+
+/* ── BUTTONS ── */
+.btn-primary {
+  background: transparent;
+  border: 1px solid rgba(201,149,106,0.35);
+  color: var(--amber);
+  padding: 13px 36px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 1px;
+  transition: all 0.35s;
+  display: inline-flex; align-items: center; gap: 8px;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-primary:hover, .btn-primary:active {
+  background: rgba(201,149,106,0.1);
+  border-color: rgba(201,149,106,0.6);
+  color: var(--white);
+}
+
+/* ── SCREEN 2 — BIRTHDAY ── */
+.birthday-lines { text-align: center; max-width: 380px; }
+.bline {
+  display: block;
+  font-family: 'Playfair Display', serif;
+  font-weight: 300;
+  font-size: clamp(1.1rem, 4vw, 1.45rem);
+  line-height: 1.5;
+  color: var(--white);
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+  margin-bottom: 18px;
+}
+.bline.italic { font-style: italic; color: var(--cream-dim); font-size: clamp(0.95rem,3vw,1.2rem); }
+.bline.visible { opacity: 1; transform: translateY(0); }
+
+/* ── SCREEN 3 — CONFESSION ── */
+.confession-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(201,149,106,0.12);
+  border-radius: 4px;
+  padding: 36px 28px;
+  max-width: 480px;
+  width: 100%;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  position: relative;
+}
+.confession-card::before {
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: 4px;
+  background: linear-gradient(135deg, rgba(201,149,106,0.05) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.confession-title {
+  font-family: 'Playfair Display', serif;
+  font-weight: 300; font-style: italic;
+  font-size: clamp(1.2rem, 4vw, 1.6rem);
+  color: var(--white);
+  margin-bottom: 24px;
+  line-height: 1.3;
+}
+
+.confession-body {
+  font-size: clamp(0.9rem, 2.8vw, 1rem);
+  line-height: 1.95;
+  color: var(--cream-dim);
+}
+.confession-body p { margin-bottom: 16px; }
+.confession-body strong {
+  color: var(--white);
+  font-weight: 400;
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 1.1em;
+}
+.confession-end {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(201,149,106,0.12);
+}
+.confession-end p {
+  font-size: 0.88rem;
+  color: var(--cream-faint);
+  margin-bottom: 8px;
+  line-height: 1.6;
+}
+.confession-question {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: clamp(1.1rem, 3.5vw, 1.35rem);
+  color: var(--white);
+  margin-top: 16px;
+}
+
+/* ── SCREEN 3b — DECISION ── */
+.decision-lines {
+  text-align: center;
+  max-width: 400px;
+  width: 100%;
+}
+.dline {
+  display: block;
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.9s ease, transform 0.9s ease;
+  margin-bottom: 10px;
+  line-height: 1.6;
+}
+.dline.visible { opacity: 1; transform: translateY(0); }
+
+.dline-body {
+  font-size: clamp(1rem, 3.2vw, 1.15rem);
+  color: var(--cream-dim);
+  font-family: 'Playfair Display', serif;
+  font-weight: 300;
+}
+.dline-bold {
+  font-size: clamp(1.25rem, 4.5vw, 1.7rem);
+  color: var(--white);
+  font-family: 'Playfair Display', serif;
+  font-weight: 300;
+  font-style: italic;
+}
+.dline-amber {
+  font-size: clamp(1.35rem, 5vw, 1.9rem);
+  color: var(--amber);
+  font-family: 'Playfair Display', serif;
+  font-weight: 300;
+  font-style: italic;
+}
+.dline-small {
+  font-size: clamp(0.88rem, 2.8vw, 1rem);
+  color: var(--cream-faint);
+  font-style: italic;
+}
+
+/* scroll hint */
+.scroll-hint {
+  position: fixed;
+  bottom: 24px; left: 50%;
+  transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  opacity: 0.4;
+  animation: scrollBounce 2s ease-in-out infinite;
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--amber);
+  pointer-events: none;
+}
+@keyframes scrollBounce {
+  0%,100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(5px); }
+}
+.scroll-hint::after {
+  content: '↓';
+  font-size: 1rem;
+}
+
+/* ── SCREEN 4 — ANSWERS ── */
+.answer-hint {
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  color: rgba(201,149,106,0.5);
+  text-align: center;
+  margin-bottom: 28px;
+  font-style: italic;
+}
+
+.answer-options {
+  display: flex; flex-direction: column; gap: 14px;
+  width: 100%; max-width: 400px;
+}
+
+.answer-btn {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(237,232,223,0.1);
+  border-radius: 3px;
+  padding: 20px 24px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.35s cubic-bezier(0.4,0,0.2,1);
+  -webkit-tap-highlight-color: transparent;
+  display: flex; align-items: flex-start; gap: 16px;
+}
+.answer-btn:hover, .answer-btn:active {
+  background: rgba(201,149,106,0.07);
+  border-color: rgba(201,149,106,0.3);
+  transform: translateY(-2px);
+}
+.answer-btn.selected {
+  background: rgba(201,149,106,0.1);
+  border-color: rgba(201,149,106,0.45);
+}
+.answer-emoji { font-size: 1.3rem; flex-shrink: 0; margin-top: 2px; }
+.answer-text {
+  font-family: 'Playfair Display', serif;
+  font-weight: 300;
+  font-size: clamp(0.9rem, 3vw, 1.05rem);
+  color: var(--cream);
+  line-height: 1.45;
+}
+
+/* ── ENDING SCREENS ── */
+.ending-content {
+  text-align: center;
+  max-width: 380px;
+}
+.ending-line1 {
+  font-family: 'Playfair Display', serif;
+  font-weight: 300;
+  font-size: clamp(1.1rem, 4vw, 1.45rem);
+  color: var(--white);
+  line-height: 1.5;
+  margin-bottom: 14px;
+}
+.ending-line2 {
+  font-size: clamp(0.88rem, 2.8vw, 1rem);
+  color: var(--cream-dim);
+  line-height: 1.7;
+  margin-bottom: 28px;
+}
+.ending-img {
+  width: 100%;
+  max-width: 280px;
+  border-radius: 3px;
+  opacity: 0.85;
+  border: 1px solid rgba(201,149,106,0.15);
+  display: none; /* placeholder — göster/gizle JS ile */
+}
+.ending-divider {
+  width: 40px; height: 1px;
+  background: rgba(201,149,106,0.3);
+  margin: 24px auto;
+}
+
+/* ── ADMIN SCREEN ── */
+.admin-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(201,149,106,0.15);
+  border-radius: 4px;
+  padding: 32px 28px;
+  max-width: 360px;
+  width: 100%;
+  text-align: center;
+}
+.admin-result-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 16px;
+  display: block;
+}
+.admin-result-value {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.4rem;
+  color: var(--white);
+  font-style: italic;
+  margin-bottom: 8px;
+}
+.admin-none {
+  color: var(--cream-faint);
+  font-style: italic;
+  font-size: 0.9rem;
+}
+
+/* ── CONFIRM ANIM ── */
+.confirm-ring {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  border: 1.5px solid var(--amber);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem;
+  margin: 0 auto 24px;
+  animation: ringPop 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards;
+  opacity: 0;
+}
+@keyframes ringPop {
+  from { transform: scale(0.5); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* util */
+.mt-6 { margin-top: 24px; }
+.mt-4 { margin-top: 16px; }
+.text-center { text-align: center; }
+.w-full { width: 100%; }
+.mx-auto { margin-left: auto; margin-right: auto; }
+.max-w-sm { max-width: 380px; }
+
+/* no scrollbar flash on screen switch */
+.screen::-webkit-scrollbar { display: none; }
+.screen { scrollbar-width: none; }
+</style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<!-- ════════════════════════════════════════
+     SCREEN 1 — PASSWORD
+════════════════════════════════════════ -->
+<div class="screen active" id="s1">
+  <div class="lock-icon">🔒</div>
+  <h1 class="pw-title">Sana ait küçük<br>bir şey var.</h1>
+  <p class="pw-sub">Ama önce bunun gerçekten sen olduğundan emin olmam gerekiyor.</p>
+
+  <span class="label" style="margin-bottom:14px;">Parolayı gir</span>
+  <div class="input-wrap">
+    <input type="password" id="pwInput" placeholder="••••••••••" autocomplete="off"
+           onkeydown="if(event.key==='Enter') tryPassword()">
+    <button class="eye-btn" onclick="toggleEye()">👁</button>
+  </div>
+  <div class="pw-error" id="pwError">&nbsp;</div>
+  <button class="btn-primary" onclick="tryPassword()">Devam Et &rarr;</button>
+</div>
+
+<!-- ════════════════════════════════════════
+     SCREEN 2 — BIRTHDAY INTRO
+════════════════════════════════════════ -->
+<div class="screen" id="s2">
+  <div class="birthday-lines" id="birthdayLines">
+    <span class="bline" data-delay="0">Doğum günün kutlu olsun. 🎂</span>
+    <span class="bline italic" data-delay="1400">Sana normal bir hediye vermek istedim.</span>
+    <span class="bline italic" data-delay="2900">Ama sanırım sana söylemek istediğim<br>bir şey de vardı.</span>
+    <span class="bline italic" data-delay="4500" style="color:var(--amber);opacity:0;">Uzun zamandır.</span>
+  </div>
+  <button class="btn-primary mt-6" id="s2btn" onclick="goTo(3)" style="opacity:0;transition:opacity 0.8s;margin-top:40px;">
+    Devam et &rarr;
+  </button>
+</div>
+
+<!-- ════════════════════════════════════════
+     SCREEN 3 — CONFESSION
+════════════════════════════════════════ -->
+<div class="screen" id="s3" style="align-items:flex-start; padding-top: 60px; padding-bottom: 100px;">
+  <div class="confession-card mx-auto">
+    <h2 class="confession-title">Sana Söylemek<br>İstediğim Bir Şey Var</h2>
+    <div class="confession-body">
+      <p>Bugün senin doğum günün.</p>
+      <p>Sana bir hediye verirken, uzun zamandır içimde tuttuğum bir şeyi de söylemek istedim.</p>
+      <p>Aslında bunu nasıl anlatacağımı çok düşündüm. Çünkü bazı şeyleri söylemek kolay değil. Özellikle de söyleyeceğin şeyin, karşındaki insan için ne ifade edeceğini bilmediğinde.</p>
+      <p>Ama şunu biliyorum…</p>
+      <p>Seni tanıdığımdan beri sana karşı hissettiklerimi sadece sıradan bir hoşlanma olarak görmemek için kendimle çok uğraştım.</p>
+    </div>
+  </div>
+
+  <button class="btn-primary mx-auto" onclick="goTo('3a')" style="margin-top:32px; display:block;">
+    Devam et &rarr;
+  </button>
+
+  <div class="scroll-hint" id="scrollHint">Kaydır</div>
+</div>
+
+<!-- ════════════════════════════════════════
+     SCREEN 3a — CONFESSION PART 2
+════════════════════════════════════════ -->
+<div class="screen" id="s3a" style="align-items:flex-start; padding-top:60px; padding-bottom:100px;">
+  <div class="confession-card mx-auto">
+    <div class="confession-body">
+      <p>Belki yaşlarımız farklı. Belki bu yüzden bunu söylemek konusunda daha fazla düşündüm, daha çok sustum. Hatta bazen hiç söylemememin daha doğru olduğunu düşündüm.</p>
+      <p>Ama ne kadar görmezden gelmeye çalışsam da, içimdeki şey değişmedi.</p>
+      <p>Senin yanında kendimi iyi hissediyorum.</p>
+      <p>Seni merak ediyorum.</p>
+      <p>Seni tanımak istiyorum.</p>
+      <p>Ve sanırım en dürüst haliyle söylemem gerekirse…</p>
+      <p><strong>Senden hoşlanıyorum.</strong></p>
+    </div>
+  </div>
+
+  <!-- imza -->
+  <div style="text-align:center; margin-top:28px; opacity:0.45;">
+    <span style="font-family:'Playfair Display',serif; font-style:italic; font-size:1.05rem; color:var(--amber);">
+      Görkem Orçun Özçekiç
+    </span>
+  </div>
+
+  <button class="btn-primary mx-auto" onclick="goTo('3b')" style="margin-top:32px; display:block;">
+    Devam et &rarr;
+  </button>
+</div>
+
+<!-- ════════════════════════════════════════
+     SCREEN 3b — DECISION (YENİ EKRAN)
+════════════════════════════════════════ -->
+<div class="screen" id="s3b">
+  <div class="decision-lines" id="decisionLines">
+
+    <span class="dline dline-body" data-dd="0">
+      Belki sen beni hiç bu şekilde düşünmedin.
+    </span>
+    <span class="dline dline-body" data-dd="900">
+      Belki de düşündün, bilmiyorum.
+    </span>
+    <span class="dline dline-small" data-dd="1900">
+      Ama artık içimde tutmak istemedim.
+    </span>
+    <span class="dline dline-small" data-dd="2700">
+      Sana karşı hissettiğim şeyi bilmeni istedim.
+    </span>
+
+    <div class="dline" data-dd="3700" style="margin: 28px 0 8px;">
+      <span style="font-size:clamp(0.75rem,2.2vw,0.85rem); letter-spacing:0.18em; text-transform:uppercase; color:var(--amber); opacity:0.5;">
+        Çünkü sanırım artık bir karar vermem gerekiyor
+      </span>
+    </div>
+
+    <span class="dline dline-bold" data-dd="4700" style="margin-bottom:6px;">
+      Ya çık artık aklımdan…
+    </span>
+
+    <!-- ana satır — amber, büyük -->
+    <span class="dline dline-amber" data-dd="5900" style="margin-bottom:28px;">
+      ya da gir hayatıma.
+    </span>
+
+    <span class="dline dline-body" data-dd="7200" style="font-size:clamp(0.92rem,3vw,1.05rem); color:var(--cream-faint); font-style:italic; margin-bottom:4px;">
+      Çünkü eğrisiyle doğrusuyla,
+    </span>
+    <span class="dline dline-body" data-dd="8000" style="font-size:clamp(0.92rem,3vw,1.05rem); color:var(--cream-dim); font-style:italic;">
+      kalbim hâlâ senden yana.
+    </span>
+
+  </div>
+
+  <button class="btn-primary mx-auto" id="s3bBtn"
+    onclick="goTo(4)"
+    style="opacity:0; transition:opacity 1s; margin-top:48px; display:block;">
+    Şimdi sıra sende &rarr;
+  </button>
+</div>
+
+<!-- ════════════════════════════════════════
+     SCREEN 4 — ANSWER SELECTION
+════════════════════════════════════════ -->
+<div class="screen" id="s4">
+  <div style="text-align:center; margin-bottom:28px;">
+    <p style="font-family:'Playfair Display',serif; font-style:italic; font-size:clamp(1.4rem,5vw,1.9rem); color:var(--white); margin-bottom:8px; line-height:1.3;">
+      Sen ne düşünüyorsun?
+    </p>
+    <p style="font-size:0.72rem; letter-spacing:0.18em; text-transform:uppercase; color:var(--amber); opacity:0.5;">
+      Vereceğin cevap ne olursa olsun, dürüst olman benim için yeterli
+    </p>
+  </div>
+  <p class="answer-hint">Acele etme. Sana en yakın gelen cevabı seç.</p>
+  <div class="answer-options" id="answerOptions">
+
+    <button class="answer-btn" onclick="selectAnswer(1, this)">
+      <span class="answer-emoji">❤️</span>
+      <span class="answer-text">Bu hikâyeye bir şans vermek istiyorum</span>
+    </button>
+
+    <button class="answer-btn" onclick="selectAnswer(2, this)">
+      <span class="answer-emoji">💭</span>
+      <span class="answer-text">Bunun hakkında biraz düşünmek istiyorum</span>
+    </button>
+
+    <button class="answer-btn" onclick="selectAnswer(3, this)">
+      <span class="answer-emoji">🤍</span>
+      <span class="answer-text">Seni bu şekilde hiç düşünmedim, bunu aramızda bir sır olarak bırakalım</span>
+    </button>
+
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     SCREEN 5a — ENDING 1 (Positive)
+════════════════════════════════════════ -->
+<div class="screen" id="s5a">
+  <div class="confirm-ring" style="animation-delay:0.1s">❤️</div>
+  <div class="ending-content">
+    <p class="ending-line1">Bunu görünce yüzümde istemsiz<br>bir gülümseme oluştu.</p>
+    <div class="ending-divider"></div>
+    <p class="ending-line2">Sanırım şimdi gerçekten<br>konuşacak çok şeyimiz var. 🙂</p>
+    <!-- Resim buraya eklenebilir -->
+    <!-- <img src="resim1.jpg" class="ending-img" style="display:block;"> -->
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     SCREEN 5b — ENDING 2 (Needs Time)
+════════════════════════════════════════ -->
+<div class="screen" id="s5b">
+  <div class="confirm-ring" style="animation-delay:0.1s">💭</div>
+  <div class="ending-content">
+    <p class="ending-line1">Bazı cevapların biraz<br>zamana ihtiyacı vardır.</p>
+    <div class="ending-divider"></div>
+    <p class="ending-line2">Acele etme.<br>Ben sadece bilmeni istedim.</p>
+    <!-- <img src="resim2.jpg" class="ending-img" style="display:block;"> -->
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     SCREEN 5c — ENDING 3 (Rejection)
+════════════════════════════════════════ -->
+<div class="screen" id="s5c">
+  <div class="confirm-ring" style="animation-delay:0.1s">🤍</div>
+  <div class="ending-content">
+    <p class="ending-line1">Dürüst olduğun için<br>teşekkür ederim.</p>
+    <div class="ending-divider"></div>
+    <p class="ending-line2">Merak etme. Bu sayfayı hiç açmamışız gibi davranabiliriz.<br><br>Bu da aramızda kalmış küçük bir sır olarak kalsın. 🙂</p>
+    <!-- <img src="resim3.jpg" class="ending-img" style="display:block;"> -->
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     ADMIN SCREEN (gizli — URL'de #admin yaz)
+════════════════════════════════════════ -->
+<div class="screen" id="sAdmin">
+  <div class="admin-card">
+    <span class="label" style="margin-bottom:20px;display:block;">Gizli Sonuç Sayfası</span>
+
+    <!-- admin şifre -->
+    <div id="adminLogin">
+      <div class="input-wrap" style="margin-bottom:12px;">
+        <input type="password" id="adminPw" placeholder="Admin şifresi" autocomplete="off"
+               onkeydown="if(event.key==='Enter') tryAdmin()">
+      </div>
+      <div class="pw-error" id="adminErr">&nbsp;</div>
+      <button class="btn-primary w-full" onclick="tryAdmin()">Gör</button>
+    </div>
+
+    <div id="adminResult" style="display:none;">
+      <span class="admin-result-label">Seçilen Cevap</span>
+      <div class="admin-result-value" id="adminResultVal"></div>
+      <p class="admin-none" id="adminNone" style="display:none;">Henüz cevap verilmedi.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════
+   CONFIG — buradan düzenle
+═══════════════════════════════════ */
+const CONFIG = {
+  password:      "G0lge5i2im#Sen",
+  adminPassword: "G0rkemAdmin!2026",
+  storageKey:    "dgift_answer_v1",
+};
+
+const ANSWER_LABELS = {
+  1: "❤️  Bu hikâyeye bir şans vermek istiyorum",
+  2: "💭  Bunun hakkında biraz düşünmek istiyorum",
+  3: "🤍  Seni bu şekilde hiç düşünmedim",
+};
+
+/* ═══════════════════════════════════
+   PARTICLES
+═══════════════════════════════════ */
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let particles = [];
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+class Particle {
+  constructor() { this.reset(); }
+  reset() {
+    this.x = Math.random() * canvas.width;
+    this.y = Math.random() * canvas.height;
+    this.r = Math.random() * 1.2 + 0.3;
+    this.vy = -(Math.random() * 0.25 + 0.08);
+    this.vx = (Math.random() - 0.5) * 0.1;
+    this.alpha = Math.random() * 0.35 + 0.05;
+    this.life = 0;
+    this.maxLife = Math.random() * 300 + 200;
+  }
+  draw() {
+    const fade = Math.min(this.life / 60, 1) * Math.min((this.maxLife - this.life) / 60, 1);
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(201,149,106,${this.alpha * fade})`;
+    ctx.fill();
+  }
+  update() {
+    this.x += this.vx;
+    this.y += this.vy;
+    this.life++;
+    if (this.life > this.maxLife) this.reset();
+  }
+}
+
+for (let i = 0; i < 70; i++) {
+  const p = new Particle();
+  p.life = Math.random() * p.maxLife;
+  particles.push(p);
+}
+
+function animParticles() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  particles.forEach(p => { p.update(); p.draw(); });
+  requestAnimationFrame(animParticles);
+}
+animParticles();
+
+/* ═══════════════════════════════════
+   SCREEN NAVIGATION
+═══════════════════════════════════ */
+let currentScreen = 's1';
+
+function goTo(n) {
+  const map = { 1:'s1', 2:'s2', 3:'s3', '3a':'s3a', '3b':'s3b', 4:'s4', '5a':'s5a', '5b':'s5b', '5c':'s5c', admin:'sAdmin' };
+  const id = map[n] || n;
+  document.getElementById(currentScreen).classList.remove('active');
+  currentScreen = id;
+  document.getElementById(id).classList.add('active');
+
+  if (id === 's3') {
+    setTimeout(() => {
+      const sh = document.getElementById('scrollHint');
+      if(sh) sh.style.opacity = '0.4';
+    }, 1200);
+    document.getElementById('s3').addEventListener('scroll', function() {
+      const sh = document.getElementById('scrollHint');
+      if(sh && this.scrollTop > 40) sh.style.opacity = '0';
+    }, { once: true });
+  }
+
+  if (id === 's3b') {
+    startDecision();
+  }
+}
+
+function startDecision() {
+  const lines = document.querySelectorAll('#decisionLines .dline');
+  lines.forEach(el => {
+    const delay = parseInt(el.dataset.dd) || 0;
+    setTimeout(() => el.classList.add('visible'), delay);
+  });
+  // butonu en son göster
+  setTimeout(() => {
+    const btn = document.getElementById('s3bBtn');
+    if (btn) btn.style.opacity = '1';
+  }, 9200);
+}
+
+/* ═══════════════════════════════════
+   SCREEN 1 — PASSWORD
+═══════════════════════════════════ */
+let pwAttempts = 0;
+let pwLocked = false;
+
+function toggleEye() {
+  const inp = document.getElementById('pwInput');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+function tryPassword() {
+  if (pwLocked) return;
+  const val = document.getElementById('pwInput').value;
+  if (val === CONFIG.password) {
+    goTo(2);
+    startBirthday();
+  } else {
+    pwAttempts++;
+    const err = document.getElementById('pwError');
+    err.textContent = 'Sanırım henüz doğru anahtarı bulamadın.';
+    document.getElementById('pwInput').value = '';
+    if (pwAttempts >= 5) {
+      pwLocked = true;
+      err.textContent = 'Çok fazla deneme. Lütfen bekle...';
+      setTimeout(() => { pwLocked = false; pwAttempts = 0; err.textContent = ''; }, 30000);
+    }
+  }
+}
+
+/* ═══════════════════════════════════
+   SCREEN 2 — BIRTHDAY ANIMATION
+═══════════════════════════════════ */
+function startBirthday() {
+  const lines = document.querySelectorAll('.bline');
+  lines.forEach(el => {
+    const delay = parseInt(el.dataset.delay) || 0;
+    setTimeout(() => el.classList.add('visible'), delay);
+  });
+  setTimeout(() => {
+    const btn = document.getElementById('s2btn');
+    if(btn) btn.style.opacity = '1';
+  }, 6000);
+}
+
+/* ═══════════════════════════════════
+   SCREEN 4 — ANSWER SELECTION
+═══════════════════════════════════ */
+let answered = false;
+
+function selectAnswer(option, el) {
+  if (answered) return;
+  answered = true;
+
+  // tüm butonları devre dışı bırak
+  document.querySelectorAll('.answer-btn').forEach(b => {
+    b.style.opacity = '0.35';
+    b.style.pointerEvents = 'none';
+  });
+  el.classList.add('selected');
+  el.style.opacity = '1';
+
+  // kaydet
+  localStorage.setItem(CONFIG.storageKey, String(option));
+
+  // geçiş
+  setTimeout(() => {
+    const endings = { 1:'5a', 2:'5b', 3:'5c' };
+    goTo(endings[option]);
+  }, 700);
+}
+
+/* ═══════════════════════════════════
+   ADMIN
+═══════════════════════════════════ */
+function tryAdmin() {
+  const val = document.getElementById('adminPw').value;
+  if (val === CONFIG.adminPassword) {
+    document.getElementById('adminLogin').style.display = 'none';
+    const result = localStorage.getItem(CONFIG.storageKey);
+    const resEl = document.getElementById('adminResult');
+    resEl.style.display = 'block';
+    if (result) {
+      document.getElementById('adminResultVal').textContent = ANSWER_LABELS[result] || 'Bilinmiyor';
+    } else {
+      document.getElementById('adminNone').style.display = 'block';
+    }
+  } else {
+    document.getElementById('adminErr').textContent = 'Yanlış şifre.';
+  }
+}
+
+/* ═══════════════════════════════════
+   ROUTING — #admin
+═══════════════════════════════════ */
+function checkRoute() {
+  if (window.location.hash === '#admin') {
+    document.getElementById('s1').classList.remove('active');
+    currentScreen = 'sAdmin';
+    document.getElementById('sAdmin').classList.add('active');
+  }
+  // Daha önce cevap verilmişse direkt sonuca git
+  const saved = localStorage.getItem(CONFIG.storageKey);
+  if (saved && window.location.hash !== '#admin') {
+    // Şifre doğrulanmadan direkt sonuca gitme — cevabı koru ama yeniden gösterme
+    // Sadece şifreden sonra göster
+  }
+}
+checkRoute();
+window.addEventListener('hashchange', checkRoute);
+</script>
+</body>
+</html>
